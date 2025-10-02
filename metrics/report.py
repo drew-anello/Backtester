@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -43,9 +44,22 @@ def summarize(history: Iterable[dict], results_dir: str = "results") -> dict:
 
     max_dd, dd_days = _compute_drawdown(equity)
 
-    Path(results_dir).mkdir(parents=True, exist_ok=True)
-    out_csv = Path(results_dir) / "equity.csv"
+    results_path = Path(results_dir)
+    results_path.mkdir(parents=True, exist_ok=True)
+    out_csv = results_path / "equity.csv"
     df.to_csv(out_csv)
+
+    # Generate equity curve plot
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(df.index, equity, label="Equity")
+    ax.set_title("Backtest Equity Curve")
+    ax.set_ylabel("Portfolio Value")
+    ax.set_xlabel("Date")
+    ax.legend()
+    fig.autofmt_xdate()
+    out_png = results_path / "equity.png"
+    fig.savefig(out_png, dpi=150, bbox_inches="tight")
+    plt.close(fig)
 
     return {
         "start_value": float(equity.iloc[0]),
@@ -57,4 +71,5 @@ def summarize(history: Iterable[dict], results_dir: str = "results") -> dict:
         "max_drawdown": float(max_dd),
         "max_drawdown_days": dd_days,
         "equity_path": str(out_csv),
+        "equity_plot": str(out_png),
     }

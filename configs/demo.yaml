@@ -1,7 +1,7 @@
 symbols:
-  - VOOG
+  - TSLA
 data_root: data/equities
-initial_cash: 100000
+initial_cash: 100
 start: 2018-01-01
 end: 2025-10-01
 strategy:

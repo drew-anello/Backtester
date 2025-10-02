@@ -88,9 +88,10 @@ make run-demo
 
 This command:
 - Ensures the yfinance cache exists (downloading data if needed)
-- Runs the SMA crossover strategy across the configured period
+- Runs the selected strategy across the configured period
 - Prints key metrics to the terminal
 - Exports the full equity curve to `results/equity.csv`
+- Saves a ready-to-share chart at `results/equity.png`
 
 Sample output:
 
@@ -103,6 +104,7 @@ Sharpe: 0.6040
 max_drawdown: -0.4333
 max_drawdown_days: 223.0
 equity_path: results/equity.csv
+equity_plot: results/equity.png
 ```
 
 ## Running Tests
