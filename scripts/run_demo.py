@@ -1,14 +1,41 @@
 from __future__ import annotations
 import argparse
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 from backtest.engine import BacktestEngine
 from backtest.data_loader import CSVLoader, YFinanceLoader
 from backtest.portfolio import Portfolio
-from strategies.moving_average import MovingAverageCross
 from metrics.report import summarize
+from strategies.mean_reversion import MeanReversionStrategy
+from strategies.moving_average import MovingAverageCross
+
+
+STRATEGY_REGISTRY: dict[str, tuple[type[Any], dict[str, Any]]] = {
+    "moving_average": (
+        MovingAverageCross,
+        {"short_window": 50, "long_window": 200},
+    ),
+    "mean_reversion": (
+        MeanReversionStrategy,
+        {"lookback": 20, "entry_z": 1.5, "exit_z": 0.5},
+    ),
+}
+
+
+def build_strategy(config: dict[str, Any]) -> Any:
+    cfg_copy = dict(config or {})
+    strategy_type = str(cfg_copy.pop("type", "moving_average"))
+    if strategy_type not in STRATEGY_REGISTRY:
+        supported = ", ".join(sorted(STRATEGY_REGISTRY))
+        raise ValueError(
+            f"Unknown strategy type '{strategy_type}'. Supported types: {supported}"
+        )
+    cls, defaults = STRATEGY_REGISTRY[strategy_type]
+    params = {**defaults, **cfg_copy}
+    return cls(**params)
 
 
 def load_config(cfg_path: Path | None) -> dict:
@@ -22,7 +49,7 @@ def load_config(cfg_path: Path | None) -> dict:
         "initial_cash": 100_000,
         "start": "2018-01-01",
         "end": "2024-12-31",
-        "strategy": {"short_window": 50, "long_window": 200},
+        "strategy": {"type": "moving_average"},
     }
 
 
@@ -42,7 +69,7 @@ def main(argv=None) -> int:
         data_path = Path(cfg.get("data_path", "data/demo.csv"))
         data_path.parent.mkdir(parents=True, exist_ok=True)
         loader = CSVLoader(str(data_path))
-    strat = MovingAverageCross(**cfg.get("strategy", {}))
+    strat = build_strategy(cfg.get("strategy", {}))
     portfolio = Portfolio(cash=float(cfg.get("initial_cash", 100_000)))
 
     engine = BacktestEngine(

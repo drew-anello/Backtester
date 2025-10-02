@@ -12,6 +12,7 @@ Backtester is a modular end-to-end equities backtesting engine intended for port
 
 - **YFinance integration** with on-disk Parquet caching (`data/equities/`)
 - **Strategy layer** with an SMA crossover example (`strategies/moving_average.py`)
+- **Strategy registry** supporting multiple pluggable strategies (e.g. SMA crossover, mean reversion)
 - **Portfolio simulation** with target-weight based execution (`backtest/portfolio.py`)
 - **Performance metrics** (CAGR, Sharpe, drawdown, etc.) saved to `results/equity.csv`
 - **Config-driven runs** via `configs/demo.yaml`
@@ -67,12 +68,16 @@ initial_cash: 100000
 start: 2018-01-01
 end: 2024-12-31
 strategy:
+  type: moving_average
   short_window: 50
   long_window: 200
 ```
 
 Notes:
 - Multiple tickers are supported, but the included strategy/portfolio currently assume a single exposure stream. Extending them to per-symbol weights is a suggested enhancement.
+- `strategy.type` determines which strategy class is instantiated. Supported values:
+  - `moving_average` (params: `short_window`, `long_window`)
+  - `mean_reversion` (params: `lookback`, `entry_z`, `exit_z`)
 - If `symbols` is omitted, the script falls back to loading `data/demo.csv` via `CSVLoader`.
 
 ### 3. Run the demo backtest
@@ -106,6 +111,7 @@ The `tests/` directory contains pytest coverage for the strategy and portfolio p
 
 - `tests/test_moving_average.py` validates the SMA crossover signal logic.
 - `tests/test_portfolio.py` ensures target-weight execution updates cash/positions correctly.
+- `tests/test_mean_reversion.py` covers the mean reversion thresholds and stability checks.
 
 To execute the suite:
 

@@ -1,5 +1,6 @@
 import pytest
 
+from scripts.run_demo import build_strategy
 from strategies.moving_average import MovingAverageCross
 
 
@@ -58,3 +59,21 @@ def test_moving_average_cross_signal_flips_to_zero():
 
     # price drops enough so short SMA < long SMA
     assert strat.on_bar({"close": 98.0})["target_weight"] == 0.0
+
+
+def test_build_strategy_registry_defaults():
+    strat = build_strategy({"type": "moving_average"})
+    assert isinstance(strat, MovingAverageCross)
+    assert strat.short_window == 50
+    assert strat.long_window == 200
+
+
+def test_build_strategy_registry_overrides():
+    strat = build_strategy({"type": "moving_average", "short_window": 5, "long_window": 10})
+    assert strat.short_window == 5
+    assert strat.long_window == 10
+
+
+def test_build_strategy_unknown_type():
+    with pytest.raises(ValueError):
+        build_strategy({"type": "does_not_exist"})
