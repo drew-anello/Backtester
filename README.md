@@ -1,0 +1,137 @@
+# Backtester
+
+Backtester is a modular end-to-end equities backtesting engine intended for portfolio project showcases. It downloads historical OHLCV data via `yfinance`, simulates a trading strategy across the chosen time range, and produces performance statistics alongside a full equity curve for further analysis.
+
+## Why it exists
+
+- **Hands-on learning**: Explore algorithmic trading workflows without relying on large frameworks.
+- **Portfolio-ready**: Clean architecture, type hints, and automated demo flow make it easy to present.
+- **Composable**: Swap data sources, strategies, portfolio logic, and reporting components independently.
+
+## Features
+
+- **YFinance integration** with on-disk Parquet caching (`data/equities/`)
+- **Strategy layer** with an SMA crossover example (`strategies/moving_average.py`)
+- **Portfolio simulation** with target-weight based execution (`backtest/portfolio.py`)
+- **Performance metrics** (CAGR, Sharpe, drawdown, etc.) saved to `results/equity.csv`
+- **Config-driven runs** via `configs/demo.yaml`
+- **One-command demo** through `make run-demo`
+
+## Project Structure
+
+```
+backtester/
+├── backtest/
+│   ├── data_loader.py      # CSV & yfinance loaders, parquet cache helpers
+│   ├── engine.py           # BacktestEngine orchestrating the event loop
+│   ├── portfolio.py        # Tracks cash/position history, executes orders
+│   └── __init__.py
+├── configs/
+│   └── demo.yaml           # Default configuration used by the demo script
+├── metrics/
+│   └── report.py           # summarize() produces stats + equity.csv
+├── scripts/
+│   └── run_demo.py         # CLI entry point for running the demo backtest
+├── strategies/
+│   ├── base.py             # Abstract strategy interface
+│   └── moving_average.py   # Example moving-average crossover strategy
+├── results/                # Generated artifacts (e.g. equity.csv)
+├── requirements.txt
+└── Makefile
+```
+
+## Getting Started
+
+### 1. Clone and install dependencies
+
+```bash
+git clone https://github.com/drew-anello/Backtester.git
+cd Backtester
+python -m venv venv
+source venv/bin/activate
+make install
+```
+
+> Alternatively, install via `pip install -r requirements.txt` if you prefer.
+
+### 2. Configure the demo (optional)
+
+Edit `configs/demo.yaml` to point to the symbols and timeframe you want to test:
+
+```yaml
+symbols:
+  - AAPL
+  - MSFT
+data_root: data/equities
+initial_cash: 100000
+start: 2018-01-01
+end: 2024-12-31
+strategy:
+  short_window: 50
+  long_window: 200
+```
+
+Notes:
+- Multiple tickers are supported, but the included strategy/portfolio currently assume a single exposure stream. Extending them to per-symbol weights is a suggested enhancement.
+- If `symbols` is omitted, the script falls back to loading `data/demo.csv` via `CSVLoader`.
+
+### 3. Run the demo backtest
+
+```bash
+make run-demo
+```
+
+This command:
+- Ensures the yfinance cache exists (downloading data if needed)
+- Runs the SMA crossover strategy across the configured period
+- Prints key metrics to the terminal
+- Exports the full equity curve to `results/equity.csv`
+
+Sample output:
+
+```
+=== Demo Summary ===
+start_value: 100000.0
+end_value: 235973.8
+CAGR: 0.1306
+Sharpe: 0.6040
+max_drawdown: -0.4333
+max_drawdown_days: 223.0
+equity_path: results/equity.csv
+```
+
+## How It Works
+
+- **Engine (`backtest/engine.py`)**
+  The `BacktestEngine` pulls data from the loader, invokes the strategy for each bar, and coordinates order generation, execution, and reporting.
+
+- **Data Layer (`backtest/data_loader.py`)**
+  - `YFinanceLoader` downloads OHLCV data for requested symbols, writes Parquet partitions, and yields normalized bar dictionaries.
+  - `CSVLoader` supports local CSV files for offline experiments or synthetic data.
+
+- **Strategy Layer (`strategies/`)**
+  The base `Strategy` declares `on_bar(bar) -> dict`. The included `MovingAverageCross` strategy outputs `{"target_weight": 1.0}` when the short SMA is above the long SMA and `0.0` otherwise.
+
+- **Portfolio (`backtest/portfolio.py`)**
+  Maintains cash and a single-asset position. It interprets strategy `target_weight` signals, generates orders to reach that weight, executes them at the close price, and appends entries to `history`.
+
+- **Metrics (`metrics/report.py`)**
+  `summarize()` transforms the recorded history into a pandas DataFrame, computes performance statistics (CAGR, Sharpe, volatility, drawdown), and saves `results/equity.csv` for plotting or further analysis.
+
+## Extending the Project
+
+- **Add fees/slippage** in `backtest/portfolio.py`
+- **Support multi-asset portfolios** by tracking per-symbol positions
+- **Implement new strategies** by subclassing `Strategy` or adding new modules under `strategies/`
+- **Enhance reporting** with plots or HTML summaries built atop `results/equity.csv`
+- **Write tests** using `pytest` (target the strategy logic, portfolio math, and metric outputs)
+
+## Troubleshooting
+
+- `ModuleNotFoundError: backtest`: ensure you run scripts with `PYTHONPATH=.`, or call `make run-demo` which sets it automatically.
+- Re-download data: delete the `data/equities/` directory and rerun the demo.
+- Warning about `float(row[col])`: harmless today, but future pandas releases will require `.iloc[0]`. The code is intentionally kept simple; update as needed.
+
+## License
+
+This project is provided for educational and portfolio purposes. Feel free to adapt it to your needs.
