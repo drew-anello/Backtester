@@ -28,3 +28,19 @@ def test_portfolio_executes_target_weight_signal():
     assert pytest.approx(portfolio.cash) == 1100.0  # 50 shares * 12 + 500 cash
     assert pytest.approx(portfolio.quantity) == 0.0
     assert portfolio.history[-1]["value"] == pytest.approx(1100.0)
+
+
+def test_portfolio_handles_zero_price_gracefully():
+    portfolio = Portfolio(cash=1000.0)
+    signal = {"target_weight": 1.0}
+    bar = {"close": 0.0, "date": "2024-01-01"}
+
+    orders = portfolio.generate_orders(signal, bar)
+    # price zero should result in zero qty (avoid division by zero)
+    assert orders == [{"qty": 0.0, "price": 0.0}]
+
+    fills = portfolio.execute_orders(orders, bar)
+    portfolio.update(fills, bar)
+    assert portfolio.cash == pytest.approx(1000.0)
+    assert portfolio.quantity == pytest.approx(0.0)
+    assert portfolio.history[-1]["value"] == pytest.approx(1000.0)

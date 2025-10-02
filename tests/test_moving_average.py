@@ -36,3 +36,25 @@ def test_moving_average_cross_does_not_false_positive(prices, expected):
     strat = MovingAverageCross(short_window=2, long_window=3)
     outputs = [strat.on_bar({"close": float(p)}) for p in prices]
     assert [out["target_weight"] for out in outputs] == expected
+
+
+def test_moving_average_cross_requires_valid_windows():
+    with pytest.raises(ValueError):
+        MovingAverageCross(short_window=0, long_window=5)
+
+    with pytest.raises(ValueError):
+        MovingAverageCross(short_window=5, long_window=5)
+
+    with pytest.raises(ValueError):
+        MovingAverageCross(short_window=7, long_window=4)
+
+
+def test_moving_average_cross_signal_flips_to_zero():
+    strat = MovingAverageCross(short_window=2, long_window=3)
+    # go long first
+    strat.on_bar({"close": 100.0})
+    strat.on_bar({"close": 101.0})
+    assert strat.on_bar({"close": 102.0})["target_weight"] == 1.0
+
+    # price drops enough so short SMA < long SMA
+    assert strat.on_bar({"close": 98.0})["target_weight"] == 0.0
