@@ -100,6 +100,19 @@ max_drawdown_days: 223.0
 equity_path: results/equity.csv
 ```
 
+## Running Tests
+
+The `tests/` directory contains pytest coverage for the strategy and portfolio primitives:
+
+- `tests/test_moving_average.py` validates the SMA crossover signal logic.
+- `tests/test_portfolio.py` ensures target-weight execution updates cash/positions correctly.
+
+To execute the suite:
+
+```bash
+pytest -q
+```
+
 ## How It Works
 
 - **Engine (`backtest/engine.py`)**
