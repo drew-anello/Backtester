@@ -1,5 +1,9 @@
 from dataclasses import dataclass
 from typing import Iterable
+from .portfolio import Portfolio
+from .reporter import Reporter
+from .strategy import Strategy
+from .data_loader import DataLoader
 
 @dataclass
 class BacktestEngine:
