@@ -1,34 +1,14 @@
 from __future__ import annotations
-
 import argparse
 from pathlib import Path
-import random
 
-import polars as pl
 import yaml
 
-# Local imports
 from backtest.engine import BacktestEngine
-from backtest.data_loader import CSVLoader
+from backtest.data_loader import CSVLoader, YFinanceLoader
 from backtest.portfolio import Portfolio
 from strategies.moving_average import MovingAverageCross
 from metrics.report import summarize
-
-
-def generate_sine_data(path: Path, n: int = 600) -> None:
-    import math
-    import datetime as dt
-
-    start = dt.date(2015, 1, 1)
-    rows = []
-    price = 100.0
-    for i in range(n):
-        d = start + dt.timedelta(days=i)
-        if d.weekday() >= 5:  # skip weekends to simulate trading days
-            continue
-        price *= 1.0 + 0.001 * math.sin(i / 20.0) + random.uniform(-0.003, 0.003)
-        rows.append({"date": d.isoformat(), "close": round(price, 4)})
-    pl.DataFrame(rows).write_csv(str(path))
 
 
 def load_config(cfg_path: Path | None) -> dict:
@@ -37,11 +17,12 @@ def load_config(cfg_path: Path | None) -> dict:
             return yaml.safe_load(f) or {}
     # defaults
     return {
-        "data_path": "data/demo.csv",
+        "symbols": ["AAPL"],
+        "data_root": "data/equities",
         "initial_cash": 100_000,
         "start": "2018-01-01",
         "end": "2024-12-31",
-        "strategy": {"short_window": 20, "long_window": 50},
+        "strategy": {"short_window": 50, "long_window": 200},
     }
 
 
@@ -52,13 +33,15 @@ def main(argv=None) -> int:
 
     cfg = load_config(Path(args.config))
 
-    data_path = Path(cfg.get("data_path", "data/demo.csv"))
-    data_path.parent.mkdir(parents=True, exist_ok=True)
-    if not data_path.exists():
-        print(f"Generating synthetic data at {data_path}...")
-        generate_sine_data(data_path)
+    symbols = cfg.get("symbols")
+    data_root = cfg.get("data_root", "data/equities")
 
-    loader = CSVLoader(str(data_path))
+    if symbols:
+        loader = YFinanceLoader(symbols=list(symbols), root=str(data_root))
+    else:
+        data_path = Path(cfg.get("data_path", "data/demo.csv"))
+        data_path.parent.mkdir(parents=True, exist_ok=True)
+        loader = CSVLoader(str(data_path))
     strat = MovingAverageCross(**cfg.get("strategy", {}))
     portfolio = Portfolio(cash=float(cfg.get("initial_cash", 100_000)))
 

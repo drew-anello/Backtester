@@ -1,9 +1,37 @@
 from dataclasses import dataclass
-from typing import Iterable
-from .portfolio import Portfolio
-from .reporter import Reporter
-from .strategy import Strategy
-from .data_loader import DataLoader
+from typing import Iterable, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class DataLoader(Protocol):
+    def load(self, start: str, end: str) -> Iterable[dict]:
+        ...
+
+
+@runtime_checkable
+class Strategy(Protocol):
+    def on_bar(self, bar: dict) -> dict:
+        ...
+
+
+@runtime_checkable
+class Portfolio(Protocol):
+    history: list[dict]
+
+    def generate_orders(self, signal: dict, bar: dict) -> Iterable[dict]:
+        ...
+
+    def execute_orders(self, orders: Iterable[dict], bar: dict) -> Iterable[dict]:
+        ...
+
+    def update(self, fills: Iterable[dict], bar: dict) -> None:
+        ...
+
+
+@runtime_checkable
+class Reporter(Protocol):
+    def generate(self, history: Iterable[dict]) -> None:
+        ...
 
 @dataclass
 class BacktestEngine:
