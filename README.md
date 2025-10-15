@@ -138,7 +138,10 @@ pytest -q
   - `CSVLoader` supports local CSV files for offline experiments or synthetic data.
 
 - **Strategy Layer (`strategies/`)**
-  The base `Strategy` declares `on_bar(bar) -> dict`. The included `MovingAverageCross` strategy outputs `{"target_weight": 1.0}` when the short SMA is above the long SMA and `0.0` otherwise.
+  The base `Strategy` declares `on_bar(bar) -> dict` and the registry in `scripts/run_demo.py` wires config entries to concrete implementations.
+  - `moving_average` (`strategies/moving_average.py`): trend-following crossover that stays in cash until the short SMA rises above the long SMA, then targets full allocation.
+  - `mean_reversion` (`strategies/mean_reversion.py`): z-score based mean reversion that enters when price is sufficiently below its rolling mean and exits as it reverts.
+  Choose between them by setting `strategy.type` in `configs/demo.yaml` (additional parameters map directly to each dataclass constructor).
 
 - **Portfolio (`backtest/portfolio.py`)**
   Maintains cash and a single-asset position. It interprets strategy `target_weight` signals, generates orders to reach that weight, executes them at the close price, and appends entries to `history`.
